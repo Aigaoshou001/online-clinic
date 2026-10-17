@@ -1,0 +1,251 @@
+<!-- public/index.html —— 首页 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>康诊在线 · 专业在线问诊平台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+  .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+  .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+<!-- 顶部导航 -->
+<header class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white grid place-items-center font-bold">康</div>
+      <div>
+        <div class="font-bold text-lg leading-none">康诊在线</div>
+        <div class="text-[11px] text-slate-500 mt-0.5">24 小时专业医生答疑</div>
+      </div>
+    </a>
+    <nav class="hidden md:flex items-center gap-6 text-sm text-slate-600">
+      <a href="#doctors" class="hover:text-blue-600">找医生</a>
+      <a href="#departments" class="hover:text-blue-600">按科室</a>
+      <a href="/doctor.html" class="hover:text-blue-600">医生工作台</a>
+    </nav>
+    <a href="#query" class="text-sm px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700">我的问诊</a>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="bg-gradient-to-b from-blue-50 to-slate-50">
+  <div class="max-w-6xl mx-auto px-4 pt-10 pb-12 text-center">
+    <h1 class="text-3xl md:text-4xl font-bold text-slate-900">问医生，就来康诊在线</h1>
+    <p class="mt-3 text-slate-600">三甲名医在线答疑 · 平均 5 分钟内响应 · 隐私全程保护</p>
+
+    <div class="mt-6 max-w-2xl mx-auto">
+      <div class="flex items-center bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200">
+        <div class="pl-4 text-slate-400">🔍</div>
+        <input id="searchInput" type="text" placeholder="搜索医生姓名、疾病、科室或医院"
+               class="flex-1 px-3 py-4 outline-none text-sm bg-transparent">
+        <button onclick="doSearch()" class="m-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">搜索</button>
+      </div>
+      <div class="mt-3 text-xs text-slate-500 flex flex-wrap gap-2 justify-center items-center">
+        <span>热门：</span>
+        <button class="hover:text-blue-600" onclick="quickSearch('感冒')">感冒</button>
+        <button class="hover:text-blue-600" onclick="quickSearch('失眠')">失眠</button>
+        <button class="hover:text-blue-600" onclick="quickSearch('湿疹')">湿疹</button>
+        <button class="hover:text-blue-600" onclick="quickSearch('颈椎')">颈椎</button>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <a href="/consult.html" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-2xl font-medium hover:shadow-lg transition">
+        ⚡ 快速问诊（智能匹配医生）
+      </a>
+    </div>
+
+    <div class="mt-8 grid grid-cols-3 max-w-lg mx-auto gap-3">
+      <div class="bg-white rounded-xl p-3 shadow-sm">
+        <div id="statDoctors" class="text-xl font-bold text-blue-600">-</div>
+        <div class="text-xs text-slate-500 mt-0.5">在线医生</div>
+      </div>
+      <div class="bg-white rounded-xl p-3 shadow-sm">
+        <div id="statConsults" class="text-xl font-bold text-blue-600">-</div>
+        <div class="text-xs text-slate-500 mt-0.5">累计问诊</div>
+      </div>
+      <div class="bg-white rounded-xl p-3 shadow-sm">
+        <div id="statPending" class="text-xl font-bold text-amber-500">-</div>
+        <div class="text-xs text-slate-500 mt-0.5">待回复</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 科室 -->
+<section id="departments" class="max-w-6xl mx-auto px-4 py-10">
+  <div class="flex items-end justify-between mb-5">
+    <h2 class="text-xl font-bold">按科室找医生</h2>
+    <button onclick="clearFilter()" class="text-sm text-slate-500 hover:text-blue-600">查看全部医生</button>
+  </div>
+  <div id="deptGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+</section>
+
+<!-- 医生 -->
+<section id="doctors" class="max-w-6xl mx-auto px-4 pb-12">
+  <div class="flex items-end justify-between mb-5">
+    <h2 class="text-xl font-bold">推荐医生</h2>
+    <span id="filterLabel" class="text-sm text-slate-500"></span>
+  </div>
+  <div id="doctorGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  <div id="emptyTip" class="hidden text-center py-12 text-slate-400">没有找到匹配的医生</div>
+</section>
+
+<!-- 查询 -->
+<section id="query" class="max-w-6xl mx-auto px-4 pb-16">
+  <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 max-w-2xl mx-auto">
+    <h3 class="text-lg font-bold">查询我的问诊</h3>
+    <p class="text-sm text-slate-500 mt-1">输入问诊编号查看医生回复</p>
+    <div class="mt-4 flex gap-2">
+      <input id="queryId" type="text" placeholder="请输入问诊编号"
+             class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500">
+      <button onclick="queryConsult()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700">查询</button>
+    </div>
+    <div id="queryResult" class="mt-3 text-sm text-slate-500"></div>
+  </div>
+</section>
+
+<footer class="text-center text-xs text-slate-400 pb-8">
+  © 康诊在线 · 本平台仅提供健康咨询，不能替代线下就医
+</footer>
+
+<script>
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
+  ));
+
+  let currentDept = '';
+  let currentKeyword = '';
+
+  /* -------- 统计 -------- */
+  async function loadStats() {
+    try {
+      const r = await fetch('/api/stats');
+      const s = await r.json();
+      document.getElementById('statDoctors').textContent = s.doctors;
+      document.getElementById('statConsults').textContent = s.consults;
+      document.getElementById('statPending').textContent = s.pending;
+    } catch (e) { console.error(e); }
+  }
+
+  /* -------- 科室 -------- */
+  async function loadDepartments() {
+    const r = await fetch('/api/departments');
+    const deps = await r.json();
+    document.getElementById('deptGrid').innerHTML = deps.map(d => `
+      <button onclick="filterByDept('${esc(d.name)}')"
+              class="group bg-white border border-slate-200 rounded-2xl p-4 hover:border-blue-400 hover:shadow-md transition text-left">
+        <div class="text-2xl">${d.icon}</div>
+        <div class="mt-1 font-medium text-slate-800 group-hover:text-blue-600">${esc(d.name)}</div>
+        <div class="text-xs text-slate-500 mt-0.5">${esc(d.desc)}</div>
+        <div class="text-[10px] text-slate-400 mt-1">${d.doctors} 位医生</div>
+      </button>
+    `).join('');
+  }
+
+  /* -------- 医生列表 -------- */
+  async function loadDoctors() {
+    const params = new URLSearchParams();
+    if (currentDept) params.set('department', currentDept);
+    if (currentKeyword) params.set('keyword', currentKeyword);
+
+    const r = await fetch('/api/doctors?' + params.toString());
+    const list = await r.json();
+    renderDoctors(list);
+
+    const parts = [];
+    if (currentDept) parts.push(`科室：${currentDept}`);
+    if (currentKeyword) parts.push(`关键词：${currentKeyword}`);
+    document.getElementById('filterLabel').textContent =
+      parts.length ? parts.join(' · ') + `（共 ${list.length} 位）` : `共 ${list.length} 位医生`;
+  }
+
+  function renderDoctors(list) {
+    const grid = document.getElementById('doctorGrid');
+    const empty = document.getElementById('emptyTip');
+    if (!list.length) {
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    grid.innerHTML = list.map(d => `
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg transition">
+        <div class="flex gap-3">
+          <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 grid place-items-center text-2xl shrink-0">${d.avatar || '👨‍⚕️'}</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-bold truncate">${esc(d.name)}</span>
+              <span class="text-xs text-slate-500 shrink-0">${esc(d.title || '')}</span>
+            </div>
+            <div class="text-xs text-slate-500 mt-0.5 truncate">${esc(d.hospital || '')} · ${esc(d.department || '')}</div>
+            <div class="flex items-center gap-2 mt-1 text-xs">
+              <span class="text-amber-500">★ ${d.rating || '5.0'}</span>
+              <span class="text-slate-400">问诊 ${d.consult_count || 0} 次</span>
+              <span class="ml-auto ${d.online ? 'text-emerald-600' : 'text-slate-400'}">● ${d.online ? '在线' : '离线'}</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-slate-600 line-clamp-2 h-9">擅长：${esc(d.good_at || '常见病咨询')}</div>
+        <button onclick="goConsult(${d.id})"
+                class="mt-4 w-full py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
+          立即问诊
+        </button>
+      </div>
+    `).join('');
+  }
+
+  function filterByDept(name) {
+    currentDept = name;
+    currentKeyword = '';
+    document.getElementById('searchInput').value = '';
+    loadDoctors();
+    document.getElementById('doctors').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function clearFilter() {
+    currentDept = '';
+    currentKeyword = '';
+    document.getElementById('searchInput').value = '';
+    loadDoctors();
+  }
+
+  function doSearch() {
+    currentKeyword = document.getElementById('searchInput').value.trim();
+    currentDept = '';
+    loadDoctors();
+    document.getElementById('doctors').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function quickSearch(kw) {
+    document.getElementById('searchInput').value = kw;
+    doSearch();
+  }
+
+  function goConsult(doctorId) {
+    location.href = `/consult.html?doctorId=${doctorId}`;
+  }
+
+  /* -------- 查询编号 -------- */
+  function queryConsult() {
+    const id = document.getElementById('queryId').value.trim();
+    const box = document.getElementById('queryResult');
+    if (!id) { box.textContent = '请输入问诊编号'; box.className = 'mt-3 text-sm text-red-500'; return; }
+    if (!/^\d+$/.test(id)) { box.textContent = '编号只能是数字'; box.className = 'mt-3 text-sm text-red-500'; return; }
+    location.href = `/consult.html?id=${id}`;
+  }
+
+  /* -------- 初始化 -------- */
+  loadStats();
+  loadDepartments();
+  loadDoctors();
+</script>
+</body>
+</html>

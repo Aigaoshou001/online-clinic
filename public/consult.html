@@ -1,0 +1,333 @@
+<!-- public/consult.html —— 问诊详情 / 表单 / 聊天 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问诊详情 · 康诊在线</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+  .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col">
+
+<!-- 顶栏 -->
+<header class="sticky top-0 z-20 bg-white border-b border-slate-200">
+  <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white grid place-items-center font-bold text-sm">康</div>
+      <span class="font-bold">康诊在线</span>
+    </a>
+    <a href="/" class="text-sm text-slate-500 hover:text-blue-600">返回首页</a>
+  </div>
+</header>
+
+<main class="flex-1 w-full max-w-3xl mx-auto px-4 py-5 flex flex-col">
+
+  <!-- 医生卡片 -->
+  <div id="doctorCard" class="hidden bg-white rounded-2xl border border-slate-200 p-4 mb-4"></div>
+
+  <!-- 表单区 -->
+  <section id="formSection" class="hidden bg-white rounded-2xl border border-slate-200 p-6">
+    <h2 class="text-lg font-bold">填写问诊信息</h2>
+    <p class="text-sm text-slate-500 mt-1 mb-5">请如实描述症状，医生会尽快回复。您的信息仅医生可见。</p>
+
+    <form id="consultForm" class="space-y-4">
+      <div class="grid grid-cols-3 gap-3">
+        <div class="col-span-2">
+          <label class="block text-sm text-slate-700 mb-1">姓名 *</label>
+          <input name="name" required
+                 class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+                 placeholder="请输入真实姓名">
+        </div>
+        <div>
+          <label class="block text-sm text-slate-700 mb-1">年龄</label>
+          <input name="age" type="number" min="0"
+                 class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+                 placeholder="岁">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm text-slate-700 mb-1">性别</label>
+        <select name="gender"
+                class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500">
+          <option value="男">男</option>
+          <option value="女">女</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm text-slate-700 mb-1">主要症状 *</label>
+        <textarea name="symptoms" rows="4" required
+                  class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none"
+                  placeholder="请详细描述症状、部位、感受（如：胸口隐痛两天，深呼吸时加重）"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm text-slate-700 mb-1">症状持续时间</label>
+        <input name="duration"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+               placeholder="例如：3 天 / 1 周 / 反复 1 个月">
+      </div>
+
+      <div>
+        <label class="block text-sm text-slate-700 mb-1">既往病史 / 过敏史</label>
+        <textarea name="history" rows="2"
+                  class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none"
+                  placeholder="有无慢性病、药物过敏、手术史等"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm text-slate-700 mb-1">联系方式</label>
+        <input name="contact"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+               placeholder="手机号 / 微信，便于医生联系">
+      </div>
+
+      <button type="submit"
+              class="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+        提交问诊
+      </button>
+      <p class="text-[11px] text-slate-400 text-center">提交即表示同意本平台为您匹配医生进行健康咨询</p>
+    </form>
+  </section>
+
+  <!-- 聊天区 -->
+  <section id="chatSection" class="hidden bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col"
+           style="height: calc(100vh - 180px); min-height: 460px;">
+    <div class="px-4 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+      <div class="text-sm font-medium flex items-center gap-2">
+        问诊对话
+        <span id="chatStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">待回复</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="chatIdLabel" class="text-xs text-slate-400"></span>
+        <button onclick="refreshChat()" class="text-xs text-slate-500 hover:text-blue-600">刷新</button>
+      </div>
+    </div>
+
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50"></div>
+
+    <div class="p-3 border-t border-slate-100 bg-white flex gap-2">
+      <input id="chatInput" type="text" placeholder="补充描述你的情况…"
+             class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500"
+             onkeydown="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()"
+              class="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700">发送</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
+  ));
+
+  const formatTime = (t) => {
+    if (!t) return '';
+    return String(t).replace('T', ' ').slice(5, 16);
+  };
+
+  const params = new URLSearchParams(location.search);
+  let consultId = params.get('id');
+  const doctorId = params.get('doctorId');
+
+  let currentConsult = null;
+  let pollTimer = null;
+
+  /* ---------- 医生卡片 ---------- */
+  function renderDoctorCard(d) {
+    const card = document.getElementById('doctorCard');
+    card.innerHTML = `
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-cyan-100 grid place-items-center text-3xl">${esc(d.avatar || '👨‍⚕️')}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-lg">${esc(d.name || '')}</span>
+            <span class="text-xs text-slate-500">${esc(d.title || '')}</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-0.5">${esc(d.hospital || '')} · ${esc(d.department || '')}</div>
+          <div class="text-xs text-slate-600 mt-1 line-clamp-1">擅长：${esc(d.good_at || '')}</div>
+        </div>
+      </div>
+    `;
+    card.classList.remove('hidden');
+    if (d.id) card.dataset.doctorId = d.id;
+  }
+
+  /* ---------- 加载医生 ---------- */
+  async function loadDoctor(id) {
+    try {
+      const r = await fetch(`/api/doctors/${id}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      renderDoctorCard(d);
+    } catch (e) { console.error(e); }
+  }
+
+  /* ---------- 表单 ---------- */
+  function showForm() {
+    document.getElementById('formSection').classList.remove('hidden');
+    document.getElementById('chatSection').classList.add('hidden');
+  }
+
+  function showChat() {
+    document.getElementById('formSection').classList.add('hidden');
+    document.getElementById('chatSection').classList.remove('hidden');
+  }
+
+  document.getElementById('consultForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd);
+
+    const card = document.getElementById('doctorCard');
+    if (card.dataset.doctorId) data.doctor_id = Number(card.dataset.doctorId);
+
+    btn.disabled = true;
+    btn.textContent = '提交中…';
+
+    try {
+      const r = await fetch('/api/consultation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const ret = await r.json();
+      if (!ret.success) throw new Error(ret.error || '提交失败');
+
+      consultId = String(ret.id);
+      history.replaceState(null, '', `?id=${consultId}`);
+      await loadConsult(consultId);
+      startPolling();
+    } catch (err) {
+      alert(err.message);
+      btn.disabled = false;
+      btn.textContent = '提交问诊';
+    }
+  });
+
+  /* ---------- 加载问诊 ---------- */
+  async function loadConsult(id) {
+    const r = await fetch(`/api/consult/${id}`);
+    const ret = await r.json();
+    if (!ret.success) {
+      alert(ret.msg || '问诊不存在');
+      return;
+    }
+    currentConsult = ret.data;
+
+    if (currentConsult.doctor_name) {
+      renderDoctorCard({
+        id: currentConsult.doctor_id,
+        name: currentConsult.doctor_name,
+        title: currentConsult.doctor_title,
+        department: currentConsult.doctor_department,
+        hospital: currentConsult.doctor_hospital,
+        avatar: currentConsult.doctor_avatar,
+        good_at: currentConsult.doctor_good_at
+      });
+    }
+
+    document.getElementById('chatIdLabel').textContent = `编号 #${currentConsult.id}`;
+    document.getElementById('chatStatus').outerHTML = statusTagHTML(currentConsult.status);
+
+    renderMessages(ret.messages);
+    showChat();
+  }
+
+  function statusTagHTML(status) {
+    const map = {
+      pending: ['待回复', 'bg-amber-100 text-amber-700'],
+      answered: ['已回复', 'bg-emerald-100 text-emerald-700'],
+      closed: ['已结束', 'bg-slate-200 text-slate-500']
+    };
+    const [text, cls] = map[status] || ['未知', 'bg-slate-100 text-slate-500'];
+    return `<span id="chatStatus" class="text-[10px] px-2 py-0.5 rounded-full ${cls}">${text}</span>`;
+  }
+
+  /* ---------- 渲染消息 ---------- */
+  function renderMessages(messages) {
+    const box = document.getElementById('chatMessages');
+    if (!messages || !messages.length) {
+      box.innerHTML = `<div class="text-center text-xs text-slate-400 py-10">暂无消息</div>`;
+      return;
+    }
+    box.innerHTML = messages.map(m => {
+      if (m.role === 'system') {
+        return `<div class="text-center">
+          <span class="inline-block px-3 py-1 rounded-full bg-slate-200 text-slate-500 text-[11px]">${esc(m.content)}</span>
+        </div>`;
+      }
+      const isMe = m.role === 'patient';
+      return `
+        <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
+          <div class="max-w-[78%]">
+            ${!isMe ? `<div class="text-[10px] text-slate-400 mb-1">医生</div>` : ''}
+            <div class="${isMe ? 'bg-blue-600 text-white' : 'bg-white text-slate-800 border border-slate-200'} rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap break-words">${esc(m.content)}</div>
+            <div class="text-[10px] text-slate-400 mt-1 ${isMe ? 'text-right' : ''}">${formatTime(m.created_at)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /* ---------- 发消息 ---------- */
+  async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text || !currentConsult) return;
+    input.value = '';
+
+    try {
+      const r = await fetch(`/api/consult/${currentConsult.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text })
+      });
+      const ret = await r.json();
+      if (!ret.success) { alert(ret.msg || '发送失败'); return; }
+      await refreshChat();
+    } catch (e) { console.error(e); }
+  }
+
+  /* ---------- 刷新 ---------- */
+  async function refreshChat() {
+    if (!consultId) return;
+    try {
+      const r = await fetch(`/api/consult/${consultId}`);
+      const ret = await r.json();
+      if (!ret.success) return;
+      currentConsult = ret.data;
+      const tagEl = document.getElementById('chatStatus');
+      const tmp = document.createElement('div');
+      tmp.innerHTML = statusTagHTML(currentConsult.status);
+      tagEl.replaceWith(tmp.firstElementChild);
+      renderMessages(ret.messages);
+    } catch (e) { console.error(e); }
+  }
+
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(refreshChat, 5000);
+  }
+
+  /* ---------- 初始化 ---------- */
+  (async function init() {
+    if (consultId) {
+      await loadConsult(consultId);
+      startPolling();
+    } else {
+      if (doctorId) await loadDoctor(doctorId);
+      showForm();
+    }
+  })();
+</script>
+</body>
+</html>

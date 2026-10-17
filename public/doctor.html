@@ -1,0 +1,229 @@
+<!-- public/doctor.html —— 医生工作台 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>医生工作台 · 康诊在线</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+  .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+</style>
+</head>
+<body class="bg-slate-100 h-screen overflow-hidden flex flex-col">
+
+<!-- 顶栏 -->
+<header class="bg-white border-b border-slate-200 h-14 flex items-center px-5 justify-between shrink-0">
+  <div class="flex items-center gap-2">
+    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white grid place-items-center font-bold text-sm">康</div>
+    <span class="font-bold">医生工作台</span>
+  </div>
+  <div class="flex items-center gap-4 text-sm">
+    <span class="text-slate-400 text-xs">在线时间 09:00 - 21:00</span>
+    <a href="/" class="text-blue-600 hover:underline">返回首页</a>
+  </div>
+</header>
+
+<div class="flex-1 flex overflow-hidden">
+
+  <!-- 左侧：问诊列表 -->
+  <aside class="w-80 bg-white border-r border-slate-200 flex flex-col overflow-hidden shrink-0">
+    <div class="p-3 border-b border-slate-100 flex gap-1.5 text-xs shrink-0">
+      <button data-filter="all" class="filterBtn px-3 py-1.5 rounded-full bg-blue-600 text-white transition">全部</button>
+      <button data-filter="pending" class="filterBtn px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 transition">待回复</button>
+      <button data-filter="answered" class="filterBtn px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 transition">已回复</button>
+      <button onclick="loadList()" class="ml-auto text-slate-400 hover:text-blue-600 px-2" title="刷新">⟳</button>
+    </div>
+    <div id="listBox" class="flex-1 overflow-y-auto"></div>
+  </aside>
+
+  <!-- 右侧：详情 -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- 空状态 -->
+    <div id="emptyState" class="flex-1 grid place-items-center text-slate-400 text-sm">
+      <div class="text-center">
+        <div class="text-4xl mb-2">🩺</div>
+        请从左侧选择一条问诊查看详情
+      </div>
+    </div>
+
+    <!-- 详情 -->
+    <div id="detailBox" class="hidden flex-1 flex flex-col overflow-hidden">
+      <div class="px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div id="detailHeader" class="min-w-0 flex-1"></div>
+        <button onclick="closeConsult()" class="ml-3 text-xs text-slate-500 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50 shrink-0">
+          结束问诊
+        </button>
+      </div>
+
+      <div id="detailMessages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50"></div>
+
+      <div class="p-3 bg-white border-t border-slate-200 flex gap-2 shrink-0">
+        <textarea id="replyInput" rows="2" placeholder="输入诊疗建议…（Ctrl + Enter 发送）"
+                  class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none"
+                  onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter') sendReply()"></textarea>
+        <button onclick="sendReply()"
+                class="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 self-end">发送</button>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
+  ));
+
+  const formatTime = (t) => {
+    if (!t) return '';
+    return String(t).replace('T', ' ').slice(5, 16);
+  };
+
+  let currentFilter = 'all';
+  let currentId = null;
+  let currentConsult = null;
+
+  function statusTagHTML(status) {
+    const map = {
+      pending: ['待回复', 'bg-amber-100 text-amber-700'],
+      answered: ['已回复', 'bg-emerald-100 text-emerald-700'],
+      closed: ['已结束', 'bg-slate-100 text-slate-500']
+    };
+    const [text, cls] = map[status] || ['未知', 'bg-slate-100 text-slate-500'];
+    return `<span class="text-[10px] px-2 py-0.5 rounded-full ${cls}">${text}</span>`;
+  }
+
+  /* ---------- 列表 ---------- */
+  async function loadList() {
+    const url = currentFilter === 'all'
+      ? '/api/consultations'
+      : `/api/consultations?status=${currentFilter}`;
+
+    const r = await fetch(url);
+    const list = await r.json();
+    const box = document.getElementById('listBox');
+
+    if (!list.length) {
+      box.innerHTML = `<div class="p-8 text-center text-sm text-slate-400">暂无问诊</div>`;
+      return;
+    }
+
+    box.innerHTML = list.map(c => `
+      <div onclick="selectConsult(${c.id})"
+           class="p-3 border-b border-slate-100 cursor-pointer hover:bg-blue-50 transition ${currentId === c.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}">
+        <div class="flex items-center justify-between gap-2">
+          <div class="font-medium text-sm truncate">${esc(c.name)}
+            <span class="text-xs text-slate-400 font-normal">${c.age ? c.age + '岁 ' : ''}${esc(c.gender || '')}</span>
+          </div>
+          ${statusTagHTML(c.status)}
+        </div>
+        <div class="text-xs text-slate-500 mt-1 line-clamp-1">${esc(c.symptoms)}</div>
+        <div class="flex items-center justify-between mt-1.5">
+          <span class="text-[10px] text-slate-400">${esc(c.doctor_department || '')}</span>
+          <span class="text-[10px] text-slate-400">${formatTime(c.created_at)}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  /* ---------- 筛选 ---------- */
+  document.querySelectorAll('.filterBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filterBtn').forEach(b => {
+        b.classList.remove('bg-blue-600', 'text-white');
+        b.classList.add('bg-slate-100', 'text-slate-600');
+      });
+      btn.classList.add('bg-blue-600', 'text-white');
+      btn.classList.remove('bg-slate-100', 'text-slate-600');
+      currentFilter = btn.dataset.filter;
+      loadList();
+    });
+  });
+
+  /* ---------- 选中一条 ---------- */
+  async function selectConsult(id) {
+    currentId = id;
+    await loadList();
+
+    const r = await fetch(`/api/consult/${id}`);
+    const ret = await r.json();
+    if (!ret.success) return;
+
+    currentConsult = ret.data;
+    renderDetail(currentConsult, ret.messages);
+  }
+
+  function renderDetail(c, messages) {
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('detailBox').classList.remove('hidden');
+
+    document.getElementById('detailHeader').innerHTML = `
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="font-semibold">${esc(c.name)}</span>
+        <span class="text-xs text-slate-500">${c.age ? c.age + ' 岁' : ''} ${esc(c.gender || '')}</span>
+        ${statusTagHTML(c.status)}
+        <span class="text-xs text-slate-400">编号 #${c.id}</span>
+      </div>
+      <div class="text-xs text-slate-500 mt-1 line-clamp-1">症状：${esc(c.symptoms)}</div>
+    `;
+
+    const box = document.getElementById('detailMessages');
+    box.innerHTML = messages.map(m => {
+      if (m.role === 'system') {
+        return `<div class="text-center">
+          <span class="inline-block px-3 py-1 rounded-full bg-slate-200 text-slate-500 text-[11px]">${esc(m.content)}</span>
+        </div>`;
+      }
+      const isMe = m.role === 'doctor';
+      return `
+        <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
+          <div class="max-w-[75%]">
+            <div class="text-[10px] text-slate-400 mb-1 ${isMe ? 'text-right' : ''}">
+              ${isMe ? '我（医生）' : esc(c.name)}
+            </div>
+            <div class="${isMe ? 'bg-blue-600 text-white' : 'bg-white text-slate-800 border border-slate-200'} rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap break-words">${esc(m.content)}</div>
+            <div class="text-[10px] text-slate-400 mt-1 ${isMe ? 'text-right' : ''}">${formatTime(m.created_at)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /* ---------- 发送回复 ---------- */
+  async function sendReply() {
+    const input = document.getElementById('replyInput');
+    const text = input.value.trim();
+    if (!text || !currentId) return;
+
+    try {
+      const r = await fetch(`/api/consultation/${currentId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reply: text })
+      });
+      const ret = await r.json();
+      if (!ret.success) { alert(ret.error || '回复失败'); return; }
+      input.value = '';
+      await selectConsult(currentId);
+      await loadList();
+    } catch (e) { console.error(e); }
+  }
+
+  /* ---------- 结束问诊 ---------- */
+  async function closeConsult() {
+    if (!currentId) return;
+    if (!confirm('确定结束该问诊？结束后患者将看到"已结束"状态')) return;
+    await fetch(`/api/consultation/${currentId}/close`, { method: 'POST' });
+    await selectConsult(currentId);
+    await loadList();
+  }
+
+  /* ---------- 初始化 ---------- */
+  loadList();
+  setInterval(loadList, 10000);
+</script>
+</body>
+</html>
